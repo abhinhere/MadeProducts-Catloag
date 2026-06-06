@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { cookies } from 'next/headers';
 
 export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const cookieStore = await cookies();
+  const authCookie = cookieStore.get('dummy_auth');
+  if (!authCookie?.value) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const dbUser = await prisma.user.findUnique({
-    where: { supabaseId: user.id },
+    where: { email: authCookie.value },
     select: { id: true, name: true, email: true, role: true, active: true },
   });
 

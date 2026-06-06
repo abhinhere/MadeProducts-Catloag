@@ -10,7 +10,7 @@ import {
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/products', label: 'Products', icon: Package },
-  { href: '/dashboard/categories', label: 'Categories', icon: Tag },
+  { href: '/dashboard/categories', label: 'Categories', icon: Tag, adminOnly: true },
   { href: '/dashboard/employees', label: 'Employees', icon: Users, adminOnly: true },
   { href: '/dashboard/price-history', label: 'Price History', icon: TrendingUp, adminOnly: true },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings, adminOnly: true },
@@ -101,7 +101,7 @@ export function Sidebar({ role, isOpen, onClose }: SidebarProps) {
 
         {/* Footer */}
         <div className="p-4 border-t border-amber-50">
-          <p className="text-xs text-gray-400 text-center">Made Products © 2024</p>
+          <p className="text-xs text-gray-400 text-center">Made Products © 2026</p>
         </div>
       </aside>
     </>

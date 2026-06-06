@@ -106,8 +106,20 @@ export async function getProducts(params?: {
 }) {
   const { search, categoryId, material, handleType, gsm, page = 1, limit = 20 } = params || {};
   
-  const where: Record<string, unknown> = {};
-  if (search) where.name = { contains: search, mode: 'insensitive' };
+  const where: any = {};
+  if (search) {
+    where.OR = [
+      { name: { contains: search, mode: 'insensitive' } },
+      { category: { name: { contains: search, mode: 'insensitive' } } },
+    ];
+    
+    const searchNum = parseFloat(search);
+    if (!isNaN(searchNum)) {
+      where.OR.push({ width: searchNum });
+      where.OR.push({ height: searchNum });
+      where.OR.push({ gusset: searchNum });
+    }
+  }
   if (categoryId) where.categoryId = categoryId;
   if (material) where.material = { contains: material, mode: 'insensitive' };
   if (handleType) where.handleType = { contains: handleType, mode: 'insensitive' };
@@ -128,11 +140,19 @@ export async function getProducts(params?: {
     prisma.product.count({ where }),
   ]);
 
-  return { products, total, pages: Math.ceil(total / limit) };
+  const serializedProducts = products.map(product => ({
+    ...product,
+    priceSlabs: product.priceSlabs.map(slab => ({
+      ...slab,
+      price: slab.price.toString(),
+    })),
+  }));
+
+  return { products: serializedProducts, total, pages: Math.ceil(total / limit) };
 }
 
 export async function getProduct(id: string) {
-  return prisma.product.findUnique({
+  const product = await prisma.product.findUnique({
     where: { id },
     include: {
       category: true,
@@ -140,4 +160,14 @@ export async function getProduct(id: string) {
       priceSlabs: { orderBy: { quantity: 'asc' } },
     },
   });
+
+  if (!product) return null;
+
+  return {
+    ...product,
+    priceSlabs: product.priceSlabs.map(slab => ({
+      ...slab,
+      price: slab.price.toString(),
+    })),
+  };
 }

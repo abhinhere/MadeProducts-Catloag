@@ -1,8 +1,8 @@
 'use server';
-import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
+import { cookies } from 'next/headers';
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -19,40 +19,51 @@ export async function login(formData: FormData) {
     return { error: 'Invalid email or password format' };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword(result.data);
+  const { email, password } = result.data;
 
-  if (error) {
-    return { error: 'Invalid credentials. Please try again.' };
+  // Dummy Authentication Check - Allow any DB user with default password
+  if (password === 'Abhin2004#') {
+    // If it's the admin, ensure they exist
+    if (email === 'abhinchelakkal@gmail.com') {
+      await prisma.user.upsert({
+        where: { email: 'abhinchelakkal@gmail.com' },
+        update: { role: 'ADMIN', active: true },
+        create: {
+          id: 'dummy-admin-id',
+          supabaseId: 'dummy-admin-id',
+          email: 'abhinchelakkal@gmail.com',
+          name: 'Abhin',
+          role: 'ADMIN',
+          active: true
+        }
+      });
+      (await cookies()).set('dummy_auth', 'abhinchelakkal@gmail.com', { secure: process.env.NODE_ENV === 'production', httpOnly: true, path: '/' });
+      redirect('/dashboard');
+    }
+
+    const dbUser = await prisma.user.findUnique({ where: { email } });
+    if (dbUser && dbUser.active) {
+      (await cookies()).set('dummy_auth', dbUser.email, { secure: process.env.NODE_ENV === 'production', httpOnly: true, path: '/' });
+      redirect('/dashboard');
+    } else {
+      return { error: 'Your account does not exist or is inactive.' };
+    }
   }
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'Authentication failed' };
-
-  const dbUser = await prisma.user.findUnique({
-    where: { supabaseId: user.id },
-  });
-
-  if (!dbUser || !dbUser.active) {
-    await supabase.auth.signOut();
-    return { error: 'Your account is inactive. Contact admin.' };
-  }
-
-  redirect('/dashboard');
+  return { error: 'Invalid credentials. Please try again.' };
 }
 
 export async function logout() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  (await cookies()).delete('dummy_auth');
   redirect('/auth/login');
 }
 
 export async function getCurrentUser() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  const cookieStore = await cookies();
+  const authCookie = cookieStore.get('dummy_auth');
+  if (!authCookie?.value) return null;
 
   return prisma.user.findUnique({
-    where: { supabaseId: user.id },
+    where: { email: authCookie.value },
   });
 }

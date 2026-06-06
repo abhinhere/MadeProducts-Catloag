@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { logout } from '@/app/actions/auth';
 import { Menu, LogOut, User, ChevronDown, Package2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -13,14 +13,10 @@ interface TopbarProps {
 
 export function Topbar({ user, onMenuClick, companyName = 'Made Products' }: TopbarProps) {
   const [showMenu, setShowMenu] = useState(false);
-  const router = useRouter();
 
   async function handleLogout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await logout();
     toast.success('Signed out successfully');
-    router.push('/auth/login');
-    router.refresh();
   }
 
   return (

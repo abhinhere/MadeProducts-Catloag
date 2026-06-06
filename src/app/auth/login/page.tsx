@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { login } from '@/app/actions/auth';
 import toast from 'react-hot-toast';
 import { Package, Eye, EyeOff, Loader2 } from 'lucide-react';
 
@@ -16,17 +16,16 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const formData = new FormData();
+    formData.append('email', email);
+    formData.append('password', password);
     
-    if (error) {
-      toast.error('Invalid credentials. Please try again.');
+    const result = await login(formData);
+    
+    if (result?.error) {
+      toast.error(result.error);
       setLoading(false);
-      return;
     }
-    
-    router.push('/dashboard');
-    router.refresh();
   }
 
   return (

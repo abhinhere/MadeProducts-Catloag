@@ -4,14 +4,15 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { deleteProduct } from '@/app/actions/products';
-import { formatCurrency } from '@/lib/utils';
-import { Search, Plus, Filter, Package, Trash2, Edit, ChevronLeft, ChevronRight, Tag, X } from 'lucide-react';
+import { generateWhatsAppMessage, formatCurrency } from '@/lib/utils';
+import { Search, Plus, Filter, Package, Trash2, Edit, ChevronLeft, ChevronRight, Tag, X, Share2, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Product {
   id: string; name: string; categoryId: string;
+  width?: number | null; height?: number | null; gusset?: number | null;
   gsm?: number | null; material?: string | null; handleType?: string | null;
-  moq?: number | null; updatedAt: Date;
+  printingType?: string | null; moq?: number | null; updatedAt: Date;
   category: { name: string };
   images: { imageUrl: string }[];
   priceSlabs: { quantity: number; price: string }[];
@@ -100,7 +101,7 @@ export function ProductsClient({ products, categories, total, pages, currentPage
               <select defaultValue={searchParams.handleType || ''} onChange={e => updateSearch({ handleType: e.target.value || undefined })}
                 className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-amber-400 outline-none bg-white">
                 <option value="">All Types</option>
-                {['Twisted Handle','Flat Handle','Ribbon Handle','No Handle'].map(t => <option key={t} value={t}>{t}</option>)}
+                {['Paper Handle', 'Rope Handle', 'Ribbon Handle', 'No Handle'].map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             {hasFilters && (
@@ -124,7 +125,7 @@ export function ProductsClient({ products, categories, total, pages, currentPage
           <p className="text-sm text-gray-400">{hasFilters ? 'Try adjusting your filters' : 'Add your first product to get started'}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           {products.map((product, i) => (
             <div key={product.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden card-hover animate-fade-in group" style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}>
               <Link href={`/dashboard/products/${product.id}`}>
@@ -144,24 +145,52 @@ export function ProductsClient({ products, categories, total, pages, currentPage
                   <Tag className="w-3 h-3 text-amber-500 flex-shrink-0" />
                   <span className="text-xs text-gray-500 truncate">{product.category.name}</span>
                 </div>
-                {product.gsm && <p className="text-xs text-gray-400 mb-2">{product.gsm} GSM · {product.material}</p>}
-                {product.priceSlabs[0] && (
-                  <div className="bg-amber-50 rounded-lg px-2.5 py-1.5 mb-3">
-                    <p className="text-xs text-amber-600">From</p>
-                    <p className="font-bold text-amber-800 text-sm">{formatCurrency(parseFloat(product.priceSlabs[0].price))}<span className="text-xs font-normal text-amber-600">/{product.priceSlabs[0].quantity} pcs</span></p>
+                {(product.width && product.height) || product.gsm || product.printingType ? (
+                  <div className="flex flex-col gap-0.5 mb-3">
+                    {product.width && product.height && (
+                      <p className="text-xs text-gray-500 font-medium">
+                        {product.width} x {product.height} {product.gusset ? `x ${product.gusset}` : ''} Inch
+                      </p>
+                    )}
+                    {(product.gsm || product.printingType) && (
+                      <p className="text-xs text-gray-400">
+                        {[product.gsm ? `${product.gsm} GSM` : null, product.printingType].filter(Boolean).join(' · ')}
+                      </p>
+                    )}
+                  </div>
+                ) : null}
+                {product.priceSlabs.length > 0 && (
+                  <div className="bg-amber-50 rounded-lg px-2.5 py-2 mb-3 space-y-1">
+                    <p className="text-[10px] uppercase font-bold tracking-wider text-amber-600/80 pb-0.5 border-b border-amber-200/50 mb-1">Pricing</p>
+                    {product.priceSlabs.map(slab => (
+                      <div key={slab.quantity} className="flex items-center justify-between">
+                        <p className="text-xs text-amber-700">{slab.quantity.toLocaleString('en-IN')} pcs</p>
+                        <p className="font-bold text-amber-900 text-sm">{formatCurrency(parseFloat(slab.price))}</p>
+                      </div>
+                    ))}
                   </div>
                 )}
-                {isAdmin && (
-                  <div className="flex gap-2 pt-2 border-t border-gray-50">
-                    <Link href={`/dashboard/products/${product.id}/edit`} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 rounded-lg border border-gray-100 transition-colors">
-                      <Edit className="w-3.5 h-3.5" /> Edit
-                    </Link>
-                    <button onClick={() => handleDelete(product.id, product.name)} disabled={deleting === product.id}
-                      className="flex items-center justify-center p-1.5 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-lg border border-gray-100 transition-colors disabled:opacity-50">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                )}
+                <div className="flex gap-2 pt-2 border-t border-gray-50">
+                  <button onClick={(e) => {
+                    e.preventDefault();
+                    const text = generateWhatsAppMessage(product, { companyName: 'Made Products' });
+                    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+                    window.open(url, '_blank');
+                  }} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 rounded-lg border border-emerald-100 transition-colors">
+                    <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                  </button>
+                  {isAdmin && (
+                    <>
+                      <Link href={`/dashboard/products/${product.id}/edit`} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 rounded-lg border border-gray-100 transition-colors">
+                        <Edit className="w-3.5 h-3.5" /> Edit
+                      </Link>
+                      <button onClick={(e) => { e.preventDefault(); handleDelete(product.id, product.name); }} disabled={deleting === product.id}
+                        className="flex items-center justify-center p-1.5 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-lg border border-gray-100 transition-colors disabled:opacity-50">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           ))}

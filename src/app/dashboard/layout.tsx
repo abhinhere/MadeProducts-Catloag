@@ -20,21 +20,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     async function loadUser() {
-      const supabase = createClient();
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) {
-        router.push('/auth/login');
-        return;
-      }
       const res = await fetch('/api/me');
       if (res.ok) {
         const data = await res.json();
         if (!data.active) {
-          await supabase.auth.signOut();
           router.push('/auth/login');
           return;
         }
         setUser(data);
+      } else {
+        router.push('/auth/login');
       }
       setLoading(false);
     }

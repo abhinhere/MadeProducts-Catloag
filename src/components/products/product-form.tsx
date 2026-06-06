@@ -23,9 +23,9 @@ interface Props {
   product?: Product;
 }
 
-const HANDLE_TYPES = ['Twisted Handle', 'Flat Handle', 'Ribbon Handle', 'Die Cut Handle', 'No Handle'];
-const PRINTING_TYPES = ['No Print', 'Single Color', 'Two Color', 'Multi Color', 'CMYK', 'CMYK + Foil'];
-const MATERIALS = ['Natural Kraft Paper', 'White Kraft Paper', 'Brown Kraft Paper', 'Art Card', 'Recycled Kraft', 'Coated White Paper', 'Heavy Kraft Paper', 'Grease-Resistant Kraft'];
+const HANDLE_TYPES = ['Paper Handle', 'Rope Handle', 'Ribbon Handle', 'No Handle'];
+const PRINTING_TYPES = ['No print', 'Single colour', 'Two colour', 'Multi colour', 'Full Tint'];
+const MATERIALS = ['White Kraft Paper', 'Brown Kraft Paper', 'Duplex', 'White Pack', 'Cyber XL'];
 
 export function ProductForm({ categories, product }: Props) {
   const router = useRouter();
