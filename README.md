@@ -36,8 +36,8 @@
 In Supabase Dashboard → **Authentication → Users → Add User**:
 
 ```
-Email: admin@madeproducts.com
-Password: YourSecurePassword123
+Email: xxxxx
+Password: xxxx
 Auto-confirm: ✓
 ```
 
