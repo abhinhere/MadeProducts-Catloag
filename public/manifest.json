@@ -1,0 +1,35 @@
+{
+  "name": "Made Products Catalog",
+  "short_name": "Made Products",
+  "description": "Premium Paper Bag Products Catalog & Pricing Management",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#fffbf5",
+  "theme_color": "#7c3d12",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ]
+}

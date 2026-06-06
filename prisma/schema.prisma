@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  supabaseId String  @unique
+  name      String
+  email     String   @unique
+  role      Role     @default(EMPLOYEE)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  priceHistoryChanges PriceHistory[]
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  EMPLOYEE
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  products  Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id           String   @id @default(cuid())
+  name         String
+  categoryId   String   @map("category_id")
+  description  String?  @db.Text
+  width        Float?
+  height       Float?
+  gusset       Float?
+  gsm          Int?
+  material     String?
+  handleType   String?  @map("handle_type")
+  printingType String?  @map("printing_type")
+  color        String?
+  moq          Int?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  category     Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  images       ProductImage[]
+  priceSlabs   PriceSlab[]
+  priceHistory PriceHistory[]
+
+  @@map("products")
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String  @map("product_id")
+  imageUrl  String  @map("image_url")
+  sortOrder Int     @default(0) @map("sort_order")
+
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_images")
+}
+
+model PriceSlab {
+  id        String  @id @default(cuid())
+  productId String  @map("product_id")
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)
+
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("price_slabs")
+}
+
+model PriceHistory {
+  id          String   @id @default(cuid())
+  productId   String   @map("product_id")
+  slabId      String?  @map("slab_id")
+  quantity    Int
+  oldPrice    Decimal? @map("old_price") @db.Decimal(10, 2)
+  newPrice    Decimal  @map("new_price") @db.Decimal(10, 2)
+  changedById String   @map("changed_by")
+  changedAt   DateTime @default(now()) @map("changed_at")
+  action      String   @default("UPDATE")
+
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  changedBy   User    @relation(fields: [changedById], references: [id])
+
+  @@map("price_history")
+}
+
+model Settings {
+  id               String  @id @default("1")
+  companyName      String  @default("Made Products") @map("company_name")
+  companyLogo      String? @map("company_logo")
+  companyPhone     String? @map("company_phone")
+  companyWhatsapp  String? @map("company_whatsapp")
+  companyAddress   String? @map("company_address") @db.Text
+  shareFooter      String? @map("share_footer") @db.Text
+
+  @@map("settings")
+}
