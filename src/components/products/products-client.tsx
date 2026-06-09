@@ -12,10 +12,10 @@ interface Product {
   id: string; name: string; categoryId: string;
   width?: number | null; height?: number | null; gusset?: number | null;
   gsm?: number | null; material?: string | null; handleType?: string | null;
-  printingType?: string | null; moq?: number | null; updatedAt: Date;
+  moq?: number | null; updatedAt: Date;
   category: { name: string };
   images: { imageUrl: string }[];
-  priceSlabs: { quantity: number; price: string }[];
+  priceSlabs: { quantity: number; price: string; printingType?: string | null }[];
 }
 
 interface Props {
@@ -145,27 +145,39 @@ export function ProductsClient({ products, categories, total, pages, currentPage
                   <Tag className="w-3 h-3 text-amber-500 flex-shrink-0" />
                   <span className="text-xs text-gray-500 truncate">{product.category.name}</span>
                 </div>
-                {(product.width && product.height) || product.gsm || product.printingType ? (
+                {(product.width && product.height) || product.gsm ? (
                   <div className="flex flex-col gap-0.5 mb-3">
                     {product.width && product.height && (
                       <p className="text-xs text-gray-500 font-medium">
                         {product.width} x {product.height} {product.gusset ? `x ${product.gusset}` : ''} Inch
                       </p>
                     )}
-                    {(product.gsm || product.printingType) && (
+                    {product.gsm && (
                       <p className="text-xs text-gray-400">
-                        {[product.gsm ? `${product.gsm} GSM` : null, product.printingType].filter(Boolean).join(' · ')}
+                        {product.gsm} GSM
                       </p>
                     )}
                   </div>
                 ) : null}
                 {product.priceSlabs.length > 0 && (
-                  <div className="bg-amber-50 rounded-lg px-2.5 py-2 mb-3 space-y-1">
+                  <div className="bg-amber-50 rounded-lg px-2.5 py-2 mb-3 space-y-2">
                     <p className="text-[10px] uppercase font-bold tracking-wider text-amber-600/80 pb-0.5 border-b border-amber-200/50 mb-1">Pricing</p>
-                    {product.priceSlabs.map(slab => (
-                      <div key={slab.quantity} className="flex items-center justify-between">
-                        <p className="text-xs text-amber-700">{slab.quantity.toLocaleString('en-IN')} pcs</p>
-                        <p className="font-bold text-amber-900 text-sm">{formatCurrency(parseFloat(slab.price))}</p>
+                    {Object.entries(
+                      product.priceSlabs.reduce((acc, slab) => {
+                        const pt = slab.printingType || 'No print';
+                        if (!acc[pt]) acc[pt] = [];
+                        acc[pt].push(slab);
+                        return acc;
+                      }, {} as Record<string, typeof product.priceSlabs>)
+                    ).map(([pt, typeSlabs]) => (
+                      <div key={pt} className="space-y-1">
+                        <p className="text-[10px] font-semibold text-amber-800">{pt}</p>
+                        {typeSlabs.map(slab => (
+                          <div key={slab.quantity} className="flex items-center justify-between pl-1 border-l-2 border-amber-200/50">
+                            <p className="text-xs text-amber-700 pl-1">{slab.quantity.toLocaleString('en-IN')} pcs</p>
+                            <p className="font-bold text-amber-900 text-sm">{formatCurrency(parseFloat(slab.price))}</p>
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>

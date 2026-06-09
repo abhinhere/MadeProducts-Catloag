@@ -13,8 +13,7 @@ interface Product {
   id: string; name: string; categoryId: string;
   description?: string | null; width?: number | null; height?: number | null;
   gusset?: number | null; gsm?: number | null; material?: string | null;
-  handleType?: string | null; printingType?: string | null;
-  color?: string | null; moq?: number | null;
+  handleType?: string | null; moq?: number | null;
   images: ProductImage[];
 }
 
@@ -24,7 +23,6 @@ interface Props {
 }
 
 const HANDLE_TYPES = ['Paper Handle', 'Rope Handle', 'Ribbon Handle', 'No Handle'];
-const PRINTING_TYPES = ['No print', 'Single colour', 'Two colour', 'Multi colour', 'Full Tint'];
 const MATERIALS = ['White Kraft Paper', 'Brown Kraft Paper', 'Duplex', 'White Pack', 'Cyber XL'];
 
 export function ProductForm({ categories, product }: Props) {
@@ -171,20 +169,6 @@ export function ProductForm({ categories, product }: Props) {
                 <option value="">Select handle type</option>
                 {HANDLE_TYPES.map(h => <option key={h} value={h}>{h}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Printing Type</label>
-              <select name="printingType" defaultValue={product?.printingType || ''}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:border-amber-400 outline-none bg-white">
-                <option value="">Select printing type</option>
-                {PRINTING_TYPES.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Color</label>
-              <input name="color" defaultValue={product?.color || ''}
-                placeholder="e.g. Natural Brown"
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:border-amber-400 outline-none" />
             </div>
           </div>
         </div>

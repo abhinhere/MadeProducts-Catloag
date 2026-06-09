@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { generateWhatsAppMessage, formatCurrency, formatDate } from '@/lib/utils';
@@ -10,19 +10,21 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-interface PriceSlab { id: string; quantity: number; price: string; }
+interface PriceSlab { id: string; quantity: number; price: string; printingType?: string | null; }
 interface ProductImage { id: string; imageUrl: string; sortOrder: number; }
 
 interface Product {
   id: string; name: string; description?: string | null;
   width?: number | null; height?: number | null; gusset?: number | null;
   gsm?: number | null; material?: string | null; handleType?: string | null;
-  printingType?: string | null; color?: string | null; moq?: number | null;
+  moq?: number | null;
   updatedAt: Date; createdAt: Date;
   category: { name: string };
   images: ProductImage[];
   priceSlabs: PriceSlab[];
 }
+
+const PRINTING_TYPES = ['No print', 'Single colour', 'Two colour', 'Multi colour', 'Full Tint'];
 
 interface Settings {
   companyName: string;
@@ -39,7 +41,23 @@ export function ProductDetail({ product, settings, isAdmin }: Props) {
   const [newSlab, setNewSlab] = useState(false);
   const [editQty, setEditQty] = useState('');
   const [editPrice, setEditPrice] = useState('');
+  const [editPrintingType, setEditPrintingType] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const groupedSlabs = useMemo(() => {
+    const groups: Record<string, PriceSlab[]> = {};
+    slabs.forEach(s => {
+      const pt = s.printingType || 'No print';
+      if (!groups[pt]) groups[pt] = [];
+      groups[pt].push(s);
+    });
+    // Sort groups based on PRINTING_TYPES order
+    return Object.entries(groups).sort((a, b) => {
+      const idxA = PRINTING_TYPES.indexOf(a[0]);
+      const idxB = PRINTING_TYPES.indexOf(b[0]);
+      return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+    });
+  }, [slabs]);
 
   function startShare() {
     const msg = generateWhatsAppMessage({ ...product, priceSlabs: slabs }, settings);
@@ -55,7 +73,7 @@ export function ProductDetail({ product, settings, isAdmin }: Props) {
       return;
     }
     setSaving(true);
-    const result = await upsertPriceSlab(product.id, slabId, qty, price);
+    const result = await upsertPriceSlab(product.id, slabId, qty, price, editPrintingType || null);
     if (result?.error) {
       toast.error(result.error);
     } else {
@@ -82,8 +100,6 @@ export function ProductDetail({ product, settings, isAdmin }: Props) {
     { label: 'GSM', value: product.gsm ? `${product.gsm} GSM` : null },
     { label: 'Material', value: product.material },
     { label: 'Handle Type', value: product.handleType },
-    { label: 'Printing', value: product.printingType },
-    { label: 'Color', value: product.color },
     { label: 'MOQ', value: product.moq ? `${product.moq.toLocaleString('en-IN')} Pieces` : null },
   ].filter(s => s.value);
 
@@ -177,7 +193,7 @@ export function ProductDetail({ product, settings, isAdmin }: Props) {
             <h2 className="font-semibold text-gray-800">Pricing Slabs</h2>
           </div>
           {isAdmin && (
-            <button onClick={() => { setNewSlab(true); setEditQty(''); setEditPrice(''); setEditingId(null); }}
+            <button onClick={() => { setNewSlab(true); setEditQty(''); setEditPrice(''); setEditPrintingType(''); setEditingId(null); }}
               className="flex items-center gap-1.5 text-sm text-amber-700 hover:text-amber-800 font-medium">
               <Plus className="w-4 h-4" /> Add Slab
             </button>
@@ -185,51 +201,72 @@ export function ProductDetail({ product, settings, isAdmin }: Props) {
         </div>
 
         <div className="divide-y divide-gray-50">
-          {slabs.map(slab => (
-            <div key={slab.id} className="px-5 py-3.5 flex items-center justify-between gap-4">
-              {editingId === slab.id ? (
-                <div className="flex items-center gap-2 flex-1">
-                  <input type="number" value={editQty} onChange={e => setEditQty(e.target.value)} placeholder="Qty"
-                    className="w-24 px-2.5 py-1.5 rounded-lg border border-amber-300 text-sm outline-none focus:ring-2 focus:ring-amber-100" />
-                  <span className="text-gray-400 text-sm">pcs →</span>
-                  <input type="number" step="0.01" value={editPrice} onChange={e => setEditPrice(e.target.value)} placeholder="₹ Price"
-                    className="w-28 px-2.5 py-1.5 rounded-lg border border-amber-300 text-sm outline-none focus:ring-2 focus:ring-amber-100" />
-                  <button onClick={() => saveSlab(slab.id)} disabled={saving}
-                    className="p-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700"><Check className="w-3.5 h-3.5" /></button>
-                  <button onClick={() => setEditingId(null)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg"><X className="w-3.5 h-3.5" /></button>
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <span className="text-sm font-medium text-gray-800">{slab.quantity.toLocaleString('en-IN')} pieces</span>
-                    <span className="text-xs text-gray-400 ml-2">and above</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-base font-bold text-amber-800">{formatCurrency(parseFloat(slab.price))}</span>
-                    <span className="text-xs text-gray-400">per piece</span>
-                    {isAdmin && (
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => { setEditingId(slab.id); setEditQty(String(slab.quantity)); setEditPrice(slab.price); setNewSlab(false); }}
-                          className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
-                          <Edit className="w-3.5 h-3.5" />
-                        </button>
-                        <button onClick={() => handleDeleteSlab(slab.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+          {groupedSlabs.map(([pt, typeSlabs]) => (
+            <div key={pt} className="flex flex-col">
+              <div className="bg-amber-50/70 px-5 py-2 text-sm font-semibold text-amber-800 border-y border-amber-100/50 flex items-center gap-2">
+                {pt}
+              </div>
+              <div className="divide-y divide-gray-50">
+                {typeSlabs.map(slab => (
+                  <div key={slab.id} className="px-5 py-3.5 flex items-center justify-between gap-4">
+                    {editingId === slab.id ? (
+                      <div className="flex items-center gap-2 flex-1 flex-wrap">
+                        <input type="number" value={editQty} onChange={e => setEditQty(e.target.value)} placeholder="Qty"
+                          className="w-24 px-2.5 py-1.5 rounded-lg border border-amber-300 text-sm outline-none focus:ring-2 focus:ring-amber-100" />
+                        <span className="text-gray-400 text-sm">pcs</span>
+                        <select value={editPrintingType} onChange={e => setEditPrintingType(e.target.value)}
+                          className="w-32 px-2.5 py-1.5 rounded-lg border border-amber-300 text-sm outline-none focus:ring-2 focus:ring-amber-100 bg-white">
+                          <option value="">No print</option>
+                          {PRINTING_TYPES.filter(p => p !== 'No print').map(p => <option key={p} value={p}>{p}</option>)}
+                        </select>
+                        <span className="text-gray-400 text-sm">→</span>
+                        <input type="number" step="0.01" value={editPrice} onChange={e => setEditPrice(e.target.value)} placeholder="₹ Price"
+                          className="w-28 px-2.5 py-1.5 rounded-lg border border-amber-300 text-sm outline-none focus:ring-2 focus:ring-amber-100" />
+                        <button onClick={() => saveSlab(slab.id)} disabled={saving}
+                          className="p-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700"><Check className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => setEditingId(null)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg"><X className="w-3.5 h-3.5" /></button>
                       </div>
+                    ) : (
+                      <>
+                        <div>
+                          <span className="text-sm font-medium text-gray-800">{slab.quantity.toLocaleString('en-IN')} pieces</span>
+                          <span className="text-xs text-gray-400 ml-2">and above</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-base font-bold text-amber-800">{formatCurrency(parseFloat(slab.price))}</span>
+                          <span className="text-xs text-gray-400">per piece</span>
+                          {isAdmin && (
+                            <div className="flex items-center gap-1">
+                              <button onClick={() => { setEditingId(slab.id); setEditQty(String(slab.quantity)); setEditPrice(slab.price); setEditPrintingType(slab.printingType || ''); setNewSlab(false); }}
+                                className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              <button onClick={() => handleDeleteSlab(slab.id)}
+                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </>
                     )}
                   </div>
-                </>
-              )}
+                ))}
+              </div>
             </div>
           ))}
 
           {newSlab && (
-            <div className="px-5 py-3.5 flex items-center gap-2 bg-amber-50/50">
+            <div className="px-5 py-3.5 flex items-center gap-2 bg-amber-50/50 flex-wrap">
               <input type="number" value={editQty} onChange={e => setEditQty(e.target.value)} placeholder="Quantity"
                 className="w-24 px-2.5 py-1.5 rounded-lg border border-amber-300 text-sm outline-none focus:ring-2 focus:ring-amber-100 bg-white" />
-              <span className="text-gray-400 text-sm">pcs →</span>
+              <span className="text-gray-400 text-sm">pcs</span>
+              <select value={editPrintingType} onChange={e => setEditPrintingType(e.target.value)}
+                className="w-32 px-2.5 py-1.5 rounded-lg border border-amber-300 text-sm outline-none focus:ring-2 focus:ring-amber-100 bg-white">
+                <option value="">No print</option>
+                {PRINTING_TYPES.filter(p => p !== 'No print').map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <span className="text-gray-400 text-sm">→</span>
               <input type="number" step="0.01" value={editPrice} onChange={e => setEditPrice(e.target.value)} placeholder="₹ Price"
                 className="w-28 px-2.5 py-1.5 rounded-lg border border-amber-300 text-sm outline-none focus:ring-2 focus:ring-amber-100 bg-white" />
               <button onClick={() => saveSlab(null)} disabled={saving}

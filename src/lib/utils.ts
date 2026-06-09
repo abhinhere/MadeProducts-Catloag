@@ -37,7 +37,7 @@ export function generateWhatsAppMessage(
     material?: string | null;
     handleType?: string | null;
     moq?: number | null;
-    priceSlabs: { quantity: number; price: string | number }[];
+    priceSlabs: { quantity: number; price: string | number; printingType?: string | null }[];
   },
   settings: {
     companyName: string;
@@ -66,7 +66,8 @@ export function generateWhatsAppMessage(
     lines.push('*💰 Pricing:*');
     product.priceSlabs.forEach(slab => {
       const price = typeof slab.price === 'string' ? parseFloat(slab.price) : slab.price;
-      lines.push(`• ${slab.quantity.toLocaleString('en-IN')} Nos — ₹${price.toFixed(2)}`);
+      const printStr = slab.printingType && slab.printingType !== 'No print' ? ` (${slab.printingType})` : '';
+      lines.push(`• ${slab.quantity.toLocaleString('en-IN')} Nos${printStr} — ₹${price.toFixed(2)}`);
     });
   }
   if (settings.companyWhatsapp) {

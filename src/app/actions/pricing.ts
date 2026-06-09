@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from './auth';
 import { revalidatePath } from 'next/cache';
 
-export async function upsertPriceSlab(productId: string, slabId: string | null, quantity: number, price: number) {
+export async function upsertPriceSlab(productId: string, slabId: string | null, quantity: number, price: number, printingType?: string | null) {
   const user = await getCurrentUser();
   if (!user || user.role !== 'ADMIN') return { error: 'Unauthorized' };
 
@@ -24,12 +24,12 @@ export async function upsertPriceSlab(productId: string, slabId: string | null, 
         });
         await prisma.priceSlab.update({
           where: { id: slabId },
-          data: { quantity, price },
+          data: { quantity, price, printingType },
         });
       }
     } else {
       const slab = await prisma.priceSlab.create({
-        data: { productId, quantity, price },
+        data: { productId, quantity, price, printingType },
       });
       await prisma.priceHistory.create({
         data: {
