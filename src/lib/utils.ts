@@ -64,10 +64,29 @@ export function generateWhatsAppMessage(
   if (product.priceSlabs.length > 0) {
     lines.push('');
     lines.push('*💰 Pricing:*');
+    
+    const groups: Record<string, typeof product.priceSlabs> = {};
     product.priceSlabs.forEach(slab => {
-      const price = typeof slab.price === 'string' ? parseFloat(slab.price) : slab.price;
-      const printStr = slab.printingType && slab.printingType !== 'No print' ? ` (${slab.printingType})` : '';
-      lines.push(`• ${slab.quantity.toLocaleString('en-IN')} Nos${printStr} — ₹${price.toFixed(2)}`);
+      const pt = slab.printingType || 'No print';
+      if (!groups[pt]) groups[pt] = [];
+      groups[pt].push(slab);
+    });
+
+    const PRINTING_TYPES = ['No print', 'Single colour', 'Two colour', 'Multi colour', 'Full Tint'];
+    const sortedGroups = Object.entries(groups).sort((a, b) => {
+      const idxA = PRINTING_TYPES.indexOf(a[0]);
+      const idxB = PRINTING_TYPES.indexOf(b[0]);
+      return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+    });
+
+    sortedGroups.forEach(([pt, slabs]) => {
+      if (pt !== 'No print' || sortedGroups.length > 1) {
+        lines.push(`*${pt}:*`);
+      }
+      slabs.forEach(slab => {
+        const price = typeof slab.price === 'string' ? parseFloat(slab.price) : slab.price;
+        lines.push(`• ${slab.quantity.toLocaleString('en-IN')} Nos — ₹${price.toFixed(2)}`);
+      });
     });
   }
   if (settings.companyWhatsapp) {
@@ -75,9 +94,7 @@ export function generateWhatsAppMessage(
     lines.push('*📞 For Enquiry:*');
     lines.push(`wa.me/${settings.companyWhatsapp.replace(/\D/g, '')}`);
   }
-  if (settings.shareFooter) {
-    lines.push('');
-    lines.push(settings.shareFooter);
-  }
+  lines.push('');
+  lines.push('for more : www.madeproducts.in');
   return lines.join('\n');
 }

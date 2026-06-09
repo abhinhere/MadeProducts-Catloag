@@ -179,8 +179,6 @@ async function main() {
         gsm: p.gsm,
         material: p.material,
         handleType: p.handleType,
-        printingType: p.printingType,
-        color: p.color,
         moq: p.moq,
         images: {
           create: [{
@@ -189,7 +187,10 @@ async function main() {
           }]
         },
         priceSlabs: {
-          create: p.priceSlabs
+          create: p.priceSlabs.map(slab => ({
+            ...slab,
+            printingType: p.printingType
+          }))
         }
       }
     });
